@@ -15,6 +15,7 @@ type Tag = {
 type VideoItemResponse = {
   id: string;
   thumbnailUrl: string;
+  title: string;
   duration: number;
   views: number;
   createdAt: string;
@@ -43,6 +44,7 @@ export const videoRouter = createTRPCRouter({
         ? {
             id: video.id,
             thumbnailUrl: video.thumbnailUrl,
+            title: video.title,
             duration: video.duration,
             views: video.views,
             createdAt: video.createdAt.toISOString(),
@@ -66,6 +68,7 @@ export const videoRouter = createTRPCRouter({
         (video): VideoItemResponse => ({
           id: video.id,
           thumbnailUrl: video.thumbnailUrl,
+          title: video.title,
           duration: video.duration,
           views: video.views,
           createdAt: video.createdAt.toISOString(),

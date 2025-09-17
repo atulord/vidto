@@ -1,4 +1,6 @@
 import { postRouter } from "~/server/api/routers/post";
+import { videoRouter } from "~/server/api/routers/video";
+import { tagRouter } from "~/server/api/routers/tag";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -8,6 +10,8 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   post: postRouter,
+  video: videoRouter,
+  tag: tagRouter,
 });
 
 // export type definition of API
