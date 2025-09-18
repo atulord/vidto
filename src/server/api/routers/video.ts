@@ -1,6 +1,6 @@
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { z } from "zod";
-import { asc, desc, eq, count } from "drizzle-orm";
+import { asc, desc, eq, count, inArray, and, gte, lte } from "drizzle-orm";
 import { videos, videoTags } from "~/server/db/schema";
 import { SortKey } from "~/shared/types";
 
@@ -75,20 +75,88 @@ export const videoRouter = createTRPCRouter({
     }),
   listVideos: publicProcedure
     .input(
-      z.object({ limit: z.number().optional(), sort: z.nativeEnum(SortKey) }),
+      z.object({
+        limit: z.number().optional(),
+        sort: z.nativeEnum(SortKey),
+        tagIds: z.array(z.string()).optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+      }),
     )
     .query(async ({ ctx, input }): Promise<VideoItemResponse[]> => {
-      const allVideos = await ctx.db.query.videos.findMany({
-        limit: input.limit ?? 10,
-        orderBy: getOrderBy(input.sort),
-        with: {
-          tags: {
-            with: {
-              tag: true,
+      // Build where conditions
+      const whereConditions = [];
+
+      // Date filtering
+      if (input.dateFrom) {
+        whereConditions.push(gte(videos.createdAt, new Date(input.dateFrom)));
+      }
+      if (input.dateTo) {
+        // Add one day to include the entire end date
+        const endDate = new Date(input.dateTo);
+        endDate.setDate(endDate.getDate() + 1);
+        whereConditions.push(lte(videos.createdAt, endDate));
+      }
+
+      let allVideos;
+
+      if (input.tagIds && input.tagIds.length > 0) {
+        // If filtering by tags, we need to join with videoTags
+        const videosWithTags = await ctx.db
+          .select({
+            id: videos.id,
+            title: videos.title,
+            thumbnailUrl: videos.thumbnailUrl,
+            duration: videos.duration,
+            views: videos.views,
+            createdAt: videos.createdAt,
+          })
+          .from(videos)
+          .innerJoin(videoTags, eq(videos.id, videoTags.videoId))
+          .where(
+            and(
+              inArray(videoTags.tagId, input.tagIds),
+              ...(whereConditions.length > 0 ? [and(...whereConditions)] : []),
+            ),
+          )
+          .groupBy(videos.id)
+          .orderBy(getOrderBy(input.sort))
+          .limit(input.limit ?? 10);
+
+        // Get the full video data with tags for the filtered videos
+        const videoIds = videosWithTags.map((v) => v.id);
+
+        if (videoIds.length === 0) {
+          return [];
+        }
+
+        allVideos = await ctx.db.query.videos.findMany({
+          where: inArray(videos.id, videoIds),
+          orderBy: getOrderBy(input.sort),
+          with: {
+            tags: {
+              with: {
+                tag: true,
+              },
             },
           },
-        },
-      });
+        });
+      } else {
+        // No tag filtering, just date filtering if provided
+        allVideos = await ctx.db.query.videos.findMany({
+          limit: input.limit ?? 10,
+          orderBy: getOrderBy(input.sort),
+          where:
+            whereConditions.length > 0 ? and(...whereConditions) : undefined,
+          with: {
+            tags: {
+              with: {
+                tag: true,
+              },
+            },
+          },
+        });
+      }
 
       return allVideos.map(
         (video): VideoItemResponse => ({

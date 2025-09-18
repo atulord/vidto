@@ -1,10 +1,8 @@
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/server/db";
 import { tags, videos, videoTags } from "~/server/db/schema";
-
-const API_URL =
-  "https://file.notion.so/f/f/69277768-5815-4715-8188-871eac2f782b/d56b1c8b-2528-4e2d-b8c3-0f1c165ee0af/videos.json?table=block&id=1f2cd243-3784-8034-9853-d0a76012ccc5&spaceId=69277768-5815-4715-8188-871eac2f782b&expirationTimestamp=1758168000000&signature=pNPkB49DwJ0DCIGn2yvN-FWxQ2U5zCElmurIQnNQssc&downloadName=videos.json";
+import videosJson from "../data/videos.json";
+const videosJ = videos
 
 const InitialVideoSchema = z.object({
   id: z.string(),
@@ -120,28 +118,12 @@ const createVideoTagRelationsInTransaction = async (
 const seed = async () => {
   try {
     console.log("🌱 Starting seed process...");
-
     await db.transaction(async (tx) => {
       // Fetch initial data
       console.log("📥 Fetching initial videos...");
       const initialVideos = await fetchInitialVideos();
       const allVidios = tx.select().from(videos);
-
-      // Update existing videos with created_at from initial data
-      console.log("🔄 Updating existing videos with correct timestamps...");
-      const existingVideos = await allVidios;
-
-      for (const existingVideo of existingVideos) {
-        const initialVideo = initialVideos.find(
-          (v) => v.id === existingVideo.id,
-        );
-        if (initialVideo) {
-          await tx
-            .update(videos)
-            .set({ createdAt: new Date(initialVideo.created_at) })
-            .where(eq(videos.id, existingVideo.id));
-        }
-      }
+      
     });
   } catch (error) {
     console.error("❌ Seed process failed:", error);

@@ -140,7 +140,8 @@ export default function CreateVideoPage() {
   const router = useRouter();
 
   const { data: tags = [] } = api.tag.listTags.useQuery();
-  const { data: videoCount = 0, isLoading: isVideoCountLoading } = api.video.getVideoCount.useQuery();
+  const { data: videoCount = 0, isLoading: isVideoCountLoading } =
+    api.video.getVideoCount.useQuery();
   const createVideoMutation = api.video.createVideo.useMutation();
 
   // Generate thumbnail URL based on current video count + 1
@@ -194,7 +195,7 @@ export default function CreateVideoPage() {
     // Validate duration
     const durationResult = validateAndParseDuration(durationInput);
     if (!durationResult.isValid) {
-      toast.error(durationResult.error || "Invalid duration");
+      toast.error(durationResult.error ?? "Invalid duration");
       return false;
     }
 
@@ -259,27 +260,26 @@ export default function CreateVideoPage() {
           <div className="space-y-4">
             <Label>Thumbnail Preview</Label>
             <div className="relative aspect-video w-full overflow-hidden rounded-xl">
-              {(imageLoading || isVideoCountLoading) && videoCount === 0 && <Skeleton className="absolute inset-0 z-10" />}
-              <Image
-                src={thumbnailUrl}
-                alt="Video thumbnail preview"
-                fill
-                className={`object-cover transition-opacity duration-300 ${
-                  imageLoading ? "opacity-0" : "opacity-100"
-                }`}
-                onLoad={() => setImageLoading(false)}
-                onError={() => setImageLoading(false)}
-              />
+              {(imageLoading || isVideoCountLoading || !thumbnailUrl) && (
+                <Skeleton className="absolute inset-0 z-10" />
+              )}
+              {thumbnailUrl && (
+                <Image
+                  src={thumbnailUrl}
+                  alt="Video thumbnail preview"
+                  fill
+                  className={`object-cover transition-opacity duration-300 ${
+                    imageLoading ? "opacity-0" : "opacity-100"
+                  }`}
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => setImageLoading(false)}
+                />
+              )}
             </div>
-            <p className="text-sm text-gray-500">
-              Auto-generated thumbnail (video{videoCount + 1})
-            </p>
           </div>
 
-          {/* Right Side - Form Fields */}
           <div className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title Input */}
               <div className="space-y-2">
                 <Label htmlFor="title">
                   Title <span className="text-red-500">*</span>
@@ -299,7 +299,6 @@ export default function CreateVideoPage() {
                 </p>
               </div>
 
-              {/* Duration Input */}
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration</Label>
                 <Input

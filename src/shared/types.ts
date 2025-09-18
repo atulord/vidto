@@ -20,3 +20,11 @@ export enum SortKey {
   MostViews = "most-views",
   LeastViews = "least-views",
 }
+
+export type VideoFilters = {
+  tagIds: string[];
+  dateRange: {
+    from: Date | undefined;
+    to: Date | undefined;
+  };
+};
