@@ -13,3 +13,10 @@ export type Tag = {
   name: string;
   color: string;
 };
+
+export enum SortKey {
+  Newest = "newest",
+  Oldest = "oldest",
+  MostViews = "most-views",
+  LeastViews = "least-views",
+}

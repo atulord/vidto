@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/server/db";
 import { tags, videos, videoTags } from "~/server/db/schema";
@@ -86,6 +87,7 @@ const createVideosInTransaction = async (
     thumbnailUrl: video.thumbnail_url,
     duration: video.duration,
     views: video.views,
+    createdAt: new Date(video.created_at),
   }));
 
   await tx.insert(videos).values(videoData);
@@ -123,26 +125,24 @@ const seed = async () => {
       // Fetch initial data
       console.log("📥 Fetching initial videos...");
       const initialVideos = await fetchInitialVideos();
-      console.log(`✅ Fetched ${initialVideos.length} videos`);
+      const allVidios = tx.select().from(videos);
 
-      // Create tags
-      console.log("🏷️ Creating tags...");
-      const allTags = initialVideos.flatMap((video) => video.tags);
-      const tagMap = await createTagsInTransaction(tx, allTags);
-      console.log(`✅ Created ${tagMap.size} unique tags`);
+      // Update existing videos with created_at from initial data
+      console.log("🔄 Updating existing videos with correct timestamps...");
+      const existingVideos = await allVidios;
 
-      // Create videos
-      console.log("🎥 Creating videos...");
-      await createVideosInTransaction(tx, initialVideos);
-      console.log(`✅ Created ${initialVideos.length} videos`);
-
-      // Create video-tag relationships
-      console.log("🔗 Creating video-tag relationships...");
-      await createVideoTagRelationsInTransaction(tx, initialVideos, tagMap);
-      console.log("✅ Created video-tag relationships");
+      for (const existingVideo of existingVideos) {
+        const initialVideo = initialVideos.find(
+          (v) => v.id === existingVideo.id,
+        );
+        if (initialVideo) {
+          await tx
+            .update(videos)
+            .set({ createdAt: new Date(initialVideo.created_at) })
+            .where(eq(videos.id, existingVideo.id));
+        }
+      }
     });
-
-    console.log("🎉 Seed process completed successfully!");
   } catch (error) {
     console.error("❌ Seed process failed:", error);
     console.error("🔄 All changes have been rolled back");

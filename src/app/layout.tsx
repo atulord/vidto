@@ -2,8 +2,10 @@ import "~/styles/globals.css";
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Toaster } from "sonner";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { FloatingActionBar } from "~/components/floating-action-bar";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -22,7 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable}`}>
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <FloatingActionBar />
+          {children}
+          <Toaster />
+        </TRPCReactProvider>
       </body>
     </html>
   );
