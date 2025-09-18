@@ -1,7 +1,13 @@
-import { api, type RouterInputs } from "~/trpc/react";
-import { SortKey } from "~/shared/types";
+import { api } from "~/trpc/react";
+import type { SortKey } from "~/shared/types";
 
-export const useVideosQuery = ({ limit, sort }: { limit: number, sort: SortKey }) => {
+export const useVideosQuery = ({
+  limit,
+  sort,
+}: {
+  limit: number;
+  sort: SortKey;
+}) => {
   return api.video.listVideos.useQuery(
     { limit, sort },
     {

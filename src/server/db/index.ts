@@ -12,8 +12,11 @@ const globalForDb = globalThis as unknown as {
   client: Client | undefined;
 };
 
+const isProduction = env.NODE_ENV === "production";
+
 export const client =
-  globalForDb.client ?? createClient({ url: env.DATABASE_URL });
+  globalForDb.client ??
+  createClient({ url: isProduction ? env.DATABASE_URL : "file:./db.sqlite" });
 if (env.NODE_ENV !== "production") globalForDb.client = client;
 
 export const db = drizzle(client, { schema });

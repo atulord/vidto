@@ -132,7 +132,7 @@ export default function CreateVideoPage() {
   // Initialize with random values
   const [randomValues] = useState(() => generateRandomValues());
   const [views, setViews] = useState(randomValues.views);
-  const [duration, setDuration] = useState(randomValues.duration);
+  const [, setDuration] = useState(randomValues.duration);
   const [durationInput, setDurationInput] = useState(() =>
     formatDurationInput(randomValues.duration),
   );

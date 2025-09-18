@@ -15,11 +15,7 @@ export default function Home() {
     dateRange: { from: undefined, to: undefined },
   });
 
-  const {
-    data: videos,
-    isLoading,
-    isError,
-  } = api.video.listVideos.useQuery(
+  const { data: videos, isLoading } = api.video.listVideos.useQuery(
     {
       limit,
       sort,
@@ -58,7 +54,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="flex min-h-screen flex-col items-center text-black bg-zinc-300/50">
+      <main className="flex min-h-screen flex-col items-center bg-zinc-300/50 text-black">
         <div className="container flex flex-col items-center gap-12 px-4 py-20">
           <div className="flex w-full justify-end gap-4">
             <VideoFilterControls

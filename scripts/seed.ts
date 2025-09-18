@@ -1,9 +1,12 @@
 import { z } from "zod";
+import * as readline from "readline";
+import "dotenv/config";
+
+// Load environment variables from .env file
+
 import { db } from "~/server/db";
 import { tags, videos, videoTags } from "~/server/db/schema";
 import videosJson from "../data/videos.json";
-const videosJ = videos
-
 const InitialVideoSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -15,39 +18,32 @@ const InitialVideoSchema = z.object({
 });
 
 const InitialVideosSchema = z.object({ videos: z.array(InitialVideoSchema) });
-
-type InitialVideos = z.infer<typeof InitialVideosSchema>;
+console.log(videosJson);
 type InitialVideo = z.infer<typeof InitialVideoSchema>;
 
-class FetchError extends Error {
-  constructor(
-    message: string,
-    public status?: number,
-    public statusText?: string,
-  ) {
-    super(message);
-    this.name = "FetchError";
-  }
-}
+// Use a more permissive type for the transaction to avoid complex type error
+type TransactionType = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-const fetchInitialVideos = async (): Promise<InitialVideo[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new FetchError(
-      "Failed to fetch initial videos: " + response.statusText,
-      response.status,
-      response.statusText,
-    );
-  }
-
-  const data = await response.json();
-  const parsedData = InitialVideosSchema.safeParse(data);
+const getInitialVideos = (): InitialVideo[] => {
+  const parsedData = InitialVideosSchema.safeParse(videosJson);
   if (!parsedData.success) {
-    throw new Error(
-      "Failed to parse initial videos: " + parsedData.error.message,
-    );
+    throw new Error("Failed to parse videos.json: " + parsedData.error.message);
   }
   return parsedData.data.videos;
+};
+
+const askConfirmation = (question: string): Promise<boolean> => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`${question} (y/N): `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase().trim() === "y");
+    });
+  });
 };
 
 const randomColor = () => {
@@ -56,7 +52,10 @@ const randomColor = () => {
     .padStart(6, "0")}`;
 };
 
-const createTagsInTransaction = async (tx: any, allVideoTags: string[]) => {
+const createTagsInTransaction = async (
+  tx: TransactionType,
+  allVideoTags: string[],
+) => {
   const uniqueTags = [...new Set(allVideoTags)];
 
   const tagData = uniqueTags.map((tagName) => ({
@@ -76,7 +75,7 @@ const createTagsInTransaction = async (tx: any, allVideoTags: string[]) => {
 };
 
 const createVideosInTransaction = async (
-  tx: any,
+  tx: TransactionType,
   initialVideos: InitialVideo[],
 ) => {
   const videoData = initialVideos.map((video) => ({
@@ -92,7 +91,7 @@ const createVideosInTransaction = async (
 };
 
 const createVideoTagRelationsInTransaction = async (
-  tx: any,
+  tx: TransactionType,
   initialVideos: InitialVideo[],
   tagMap: Map<string, string>,
 ) => {
@@ -115,16 +114,77 @@ const createVideoTagRelationsInTransaction = async (
   }
 };
 
+const clearDatabase = async (tx: TransactionType) => {
+  console.log("🗑️  Clearing existing data...");
+
+  // Delete in correct order due to foreign key constraints
+  await tx.delete(videoTags);
+  console.log("   ✅ Cleared video-tag relationships");
+
+  await tx.delete(videos);
+  console.log("   ✅ Cleared videos");
+
+  await tx.delete(tags);
+  console.log("   ✅ Cleared tags");
+};
+
 const seed = async () => {
   try {
     console.log("🌱 Starting seed process...");
+
+    // Ask for confirmation before clearing database
+    const shouldClear = await askConfirmation(
+      "⚠️  This will delete ALL existing data in the database. Are you sure you want to continue?",
+    );
+
+    if (!shouldClear) {
+      console.log("❌ Seed process cancelled by user");
+      return;
+    }
+
+    console.log("📁 Loading videos from data/videos.json...");
+    const initialVideos = getInitialVideos();
+    console.log(`   ✅ Loaded ${initialVideos.length} videos`);
+
     await db.transaction(async (tx) => {
-      // Fetch initial data
-      console.log("📥 Fetching initial videos...");
-      const initialVideos = await fetchInitialVideos();
-      const allVidios = tx.select().from(videos);
-      
+      // Clear existing data
+      await clearDatabase(tx);
+
+      // Extract all unique tags from videos
+      console.log("🏷️  Processing tags...");
+      const allVideoTags = initialVideos.flatMap((video) => video.tags);
+      console.log(`   📝 Found ${allVideoTags.length} total tag references`);
+
+      // Create tags and get the mapping
+      const tagMap = await createTagsInTransaction(tx, allVideoTags);
+      console.log(`   ✅ Created ${tagMap.size} unique tags`);
+
+      // Create videos
+      console.log("🎬 Creating videos...");
+      await createVideosInTransaction(tx, initialVideos);
+      console.log(`   ✅ Created ${initialVideos.length} videos`);
+
+      // Create video-tag relationships
+      console.log("🔗 Creating video-tag relationships...");
+      await createVideoTagRelationsInTransaction(tx, initialVideos, tagMap);
+
+      // Count relationships created
+      const totalRelations = initialVideos.reduce(
+        (acc, video) => acc + video.tags.length,
+        0,
+      );
+      console.log(`   ✅ Created ${totalRelations} video-tag relationships`);
     });
+
+    console.log("🎉 Seed process completed successfully!");
+    console.log("📊 Summary:");
+    console.log(`   - Videos: ${initialVideos.length}`);
+    console.log(
+      `   - Unique tags: ${[...new Set(initialVideos.flatMap((v) => v.tags))].length}`,
+    );
+    console.log(
+      `   - Total relationships: ${initialVideos.reduce((acc, video) => acc + video.tags.length, 0)}`,
+    );
   } catch (error) {
     console.error("❌ Seed process failed:", error);
     console.error("🔄 All changes have been rolled back");

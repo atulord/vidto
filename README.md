@@ -1,29 +1,63 @@
-# Create T3 App
+# Vidto
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+# Summary
+A video gallery where users can create new videos, list videos, filter and search for them.
 
-## What's next? How do I make an app with this?
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+# Tech Stack
+Frontend is NextJS App Router, React, Tanstack Query
+Backend is tRPC, Drizzle ORM with SQLite
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+I used the create-t3-app to bootstrap the application:
+```
+pnpm create t3-app@latest
+```
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+# Installation
+install with your preferred node package manager
 
-## Learn More
+pnpm
+```
+pnpm install
+```
+npm
+```
+npm i
+```
+yarn
+```
+yarn 
+```
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+# Testing
+Mostly unit testing. Can be run via `pnpm test` or `pnpm test: watch`
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+### How it works
 
-## How do I deploy this?
+Make sure you have a `DATABASE_URL` in your .env file. However  it will default to a db if one is not given.
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+Pre startup:
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+
+to seed the database with the initial date:
+
+pnpm db:seed
+
+and then you can start the project with:
+
+pnpm dev
+
+
+And voila!
+
+
+# Future improvements:
+Inclue componenet testing and E2E testing for the app
+add verbose logging to better debug and troubleshoot the app
+Improve the pagination logic. the load. more UX is not as smooth as I would like
+Better decoupling of the query client from the react code.
+Componentize the new-video page.
+the isLoading logic for images can be improved, using a skeleton in place before loading the iage would be an enhanced experience for users.

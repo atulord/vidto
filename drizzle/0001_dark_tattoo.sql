@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `vidto_tag_name_unique` ON `vidto_tag` (`name`);

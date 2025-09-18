@@ -9,8 +9,8 @@ import { SortKey, type VideoItem } from "~/shared/types";
 // Create a test caller
 const createCaller = createCallerFactory(videoRouter);
 
-function createTestCaller() {
-  const db = getTestDb();
+async function createTestCaller() {
+  const db = await getTestDb();
   return createCaller({
     db,
     headers: new Headers(),
@@ -19,7 +19,7 @@ function createTestCaller() {
 
 // Helper to create test tags
 async function seedTestTags() {
-  const db = getTestDb();
+  const db = await getTestDb();
   const testTags = [
     { id: "tag1", name: "Education", color: "#3B82F6" },
     { id: "tag2", name: "Entertainment", color: "#EF4444" },
@@ -32,7 +32,7 @@ async function seedTestTags() {
 describe("videoRouter", () => {
   describe("createVideo procedure", () => {
     it("should create a video with basic data", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const input: inferProcedureInput<typeof videoRouter.createVideo> = {
         title: "Test Video",
         duration: 600,
@@ -46,7 +46,7 @@ describe("videoRouter", () => {
     });
 
     it("should create a video with tags", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       await seedTestTags();
 
       const input: inferProcedureInput<typeof videoRouter.createVideo> = {
@@ -67,7 +67,7 @@ describe("videoRouter", () => {
     });
 
     it("should reject video with empty title", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const input: inferProcedureInput<typeof videoRouter.createVideo> = {
         title: "",
         duration: 300,
@@ -78,7 +78,7 @@ describe("videoRouter", () => {
     });
 
     it("should reject video with negative duration", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const input: inferProcedureInput<typeof videoRouter.createVideo> = {
         title: "Test Video",
         duration: -1,
@@ -89,7 +89,7 @@ describe("videoRouter", () => {
     });
 
     it("should reject video with negative views", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const input: inferProcedureInput<typeof videoRouter.createVideo> = {
         title: "Test Video",
         duration: 300,
@@ -102,14 +102,14 @@ describe("videoRouter", () => {
 
   describe("getVideo procedure", () => {
     it("should return null for non-existent video", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const result = await caller.getVideo({ id: "non-existent" });
 
       expect(result).toBeNull();
     });
 
     it("should return video with correct structure", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       await seedTestTags();
 
       const created = await caller.createVideo({
@@ -126,22 +126,22 @@ describe("videoRouter", () => {
         title: "Structured Video",
         duration: 450,
         views: 750,
-        thumbnailUrl: expect.stringContaining("picsum.photos"),
-        createdAt: expect.any(String),
+        thumbnailUrl: expect.stringContaining("picsum.photos") as string,
+        createdAt: expect.any(String) as string,
         tags: expect.arrayContaining([
           expect.objectContaining({
             id: "tag1",
             name: "Education",
             color: "#3B82F6",
           }),
-        ]),
+        ]) as unknown[],
       });
     });
   });
 
   describe("listVideos procedure", () => {
     beforeEach(async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       await seedTestTags();
 
       await caller.createVideo({
@@ -171,7 +171,7 @@ describe("videoRouter", () => {
     });
 
     it("should list videos sorted by newest first", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const result: VideoItem[] = await caller.listVideos({
         sort: SortKey.Newest,
         limit: 10,
@@ -183,7 +183,7 @@ describe("videoRouter", () => {
     });
 
     it("should list videos sorted by most views", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const result = await caller.listVideos({
         sort: SortKey.MostViews,
         limit: 10,
@@ -194,7 +194,7 @@ describe("videoRouter", () => {
     });
 
     it("should filter videos by tags", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const result = await caller.listVideos({
         sort: SortKey.Newest,
         tagIds: ["tag1"],
@@ -208,7 +208,7 @@ describe("videoRouter", () => {
     });
 
     it("should respect limit parameter", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const result = await caller.listVideos({
         sort: SortKey.Newest,
         limit: 2,
@@ -220,14 +220,14 @@ describe("videoRouter", () => {
 
   describe("getVideoCount procedure", () => {
     it("should return 0 when no videos exist", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
       const count = await caller.getVideoCount();
 
       expect(count).toBe(0);
     });
 
     it("should return correct count after creating videos", async () => {
-      const caller = createTestCaller();
+      const caller = await createTestCaller();
 
       await caller.createVideo({
         title: "Video 1",
