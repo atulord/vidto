@@ -41,7 +41,7 @@ yarn
 ```
 
 ### Database Setup
-Make sure you have a `DATABASE_URL` in your .env file. However, it will default to a local SQLite database if one is not provided.
+Make sure you have a `DATABASE_URL` in your .env file. However, it will default to a local SQLite db if one is not provided ("file:./db.sqlite").
 
 **Pre-startup steps:**
 ```bash
